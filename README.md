@@ -1,6 +1,6 @@
 # kipu-bank
 
-![eth_img](images/Ethereum_logo_translucent.svg)
+![eth_img](images/Ethereum_logo_translucent.png)
 
 Proyecto de Banco usando smart contracts en Solidity
 
