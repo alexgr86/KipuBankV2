@@ -3,10 +3,12 @@
 ![eth_img](images/Ethereum_logo_translucent.png)
 
 ## Contract Information
-### Contract direction
-[Kipu-Bank](https://etherscan.io/)
+### Contract address
+`0x6bc69624f55b3cef49b069e809ec8576991573ab`
+[Kipu-Bank - smart contract](https://sepolia.etherscan.io/address/0x6bc69624f55b3cef49b069e809ec8576991573ab#code)
 
-`0xCFb5D91756E1E119cb791CBbC9DB719EF1da656C`
+
+
 
 ## Description
 This is a smart contract that functions as a bank. Any user can deposit and withdraw ETH according to the rules established in the contract.
@@ -39,3 +41,19 @@ This function allows checking the maximum limit that the contract can store.
 
 #### getWithdrawLimit: 
 Maximum amount allowed per withdrawal.
+
+## Steps Deploy
+
+1. Select the network to deploy
+
+![eth_img](images/injected_provider.png)
+
+2. Verify that the selected network is correct
+
+![eth_img](images/verify_sepolia.png)
+
+3. Sign with the selected provider
+
+![eth_img](images/firma_deploy.png)
+
+3. Obtain contract address
