@@ -161,4 +161,20 @@ contract Donations {
         return s_accounts[msg.sender];
     }
 
+    /**
+		*@notice function - get max bank cap
+		*@dev must revert on fail
+	*/
+    function bankCap() external view returns (uint256 balance) {
+        return i_bankCap;
+    }
+
+    /**
+		*@notice function - get withdrowLimit
+		*@dev must revert on fail
+	*/
+    function getwithdrowLimit() external view returns (uint256 balance) {
+        return i_withdrowLimit;
+    }
+
 }
