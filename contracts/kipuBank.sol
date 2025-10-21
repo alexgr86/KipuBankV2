@@ -7,7 +7,7 @@ pragma solidity 0.8.30;
 	*@author alexgr86
 	*@custom:security No usar en producción.
 */
-contract Donations {
+contract KipuBank {
 
 	/*///////////////////////
 					Variables
@@ -22,8 +22,6 @@ contract Donations {
     uint256 public s_depositCount;
     ///@notice storage variable - withdrow count
     uint256 public s_withDrowCount;
-    
-
 	///@notice mapping varible - accounts list
 	mapping(address owner => uint256 valor) public s_accounts;
 	
@@ -42,7 +40,7 @@ contract Donations {
 						Errors
 	///////////////////////*/
 	///@notice error - transaction fails
-	error Transaction_Fails(bytes error);
+	error Transaction_Fails();
     ///@notice error - global bank limit
 	error Transaction_GlobalLimit(address source, uint256 valor);
     ///@notice error - non-existent account
@@ -76,27 +74,47 @@ contract Donations {
         reentrancyFlag = 0;
     }
 
-	/*///////////////////////
-					Functions
-	///////////////////////*/
-	constructor(uint256 _bankCap, uint256 _withdrowLimit){
+    /**
+		*@notice modifier - onlyValidAmmount
+		*@dev prevent Invalid ammount transactions
+	*/
+    modifier onlyValidAmmount(uint256 _value) {
+        if (_value <= 0) revert Transaction_InvalidAmmount(msg.sender, _value);
+        _;
+    }
+
+    /**
+		*@notice modifier - withdrowLimit
+		*@dev prevent Out of limit transactions
+	*/
+    modifier withdrowLimit() {
+        if (msg.value > i_withdrowLimit) revert Transaction_WithdrowLimit(msg.sender, msg.value);
+        _;
+    }
+
+    /**
+		*@notice modifier - onlyBalanceOk
+		*@dev prevent Insufficient Balance Transactions
+	*/
+    modifier onlyBalanceOk() {
+        if (msg.value > s_accounts[msg.sender]) revert Transaction_InsufficientBalance(msg.sender, msg.value);
+        _;
+    }
+
+    constructor(uint256 _bankCap, uint256 _withdrowLimit){
 		i_bankCap = _bankCap;
         i_withdrowLimit = _withdrowLimit;
         s_depositCount = 0;
         s_withDrowCount = 0;
 	}
+
+	/*///////////////////////
+					Functions
+	///////////////////////*/
 	
 	///@notice función para recibir ether directamente
 	receive() external payable{
-        uint256 ammount = msg.value;
-        uint256 balanceCheck = address(this).balance;
-
-        if (balanceCheck > i_bankCap) revert Transaction_GlobalLimit(msg.sender, ammount);
-        if (ammount <= 0) revert Transaction_InvalidAmmount(msg.sender, ammount);
-        
-        s_accounts[msg.sender] += ammount;
-        s_depositCount += 1;
-        emit Account_DepositOk(msg.sender, balanceCheck);
+        pay(address(this), msg.value);
     }
 
 	fallback() external{}
@@ -106,16 +124,7 @@ contract Donations {
 		*@dev perform deposit to account
 	*/
 	function deposit() external payable {
-
-        uint256 ammount = msg.value;
-        uint256 balanceCheck = address(this).balance;
-
-        if (balanceCheck > i_bankCap) revert Transaction_GlobalLimit(msg.sender, ammount);
-        if (ammount <= 0) revert Transaction_InvalidAmmount(msg.sender, ammount);
-        
-        s_accounts[msg.sender] += ammount;
-        s_depositCount += 1;
-        emit Account_DepositOk(msg.sender, balanceCheck);
+        pay(msg.sender, msg.value);
     }
 	
 	/**
@@ -123,39 +132,14 @@ contract Donations {
 		*@param _value - withdrow value
 		*@dev must revert on fail
 	*/
-    function withdrawValue( uint256 _value) external {
+    function withdrawValue( uint256 _value) external payable reentrancyGuard onlyValidAmmount(_value) withdrowLimit onlyBalanceOk{
         transferValue(msg.sender,_value);
     }
-
-
-    /**
-		*@notice function - transfer value to wallet
-		*@param _to - address to transfer
-		*@param _value - value to transfer
-		*@dev must revert on fail
-	*/
-    function transferValue(address _to, uint256 _value) internal reentrancyGuard{
-        
-        if (_value <= 0) revert Transaction_InvalidAmmount(msg.sender, _value);
-        if (_value > s_accounts[msg.sender]) revert Transaction_InsufficientBalance(msg.sender, _value);
-        if (_value > i_withdrowLimit) revert Transaction_WithdrowLimit(msg.sender, _value);
-        if (_value > address(this).balance) revert Transaction_InsufficientBalance(msg.sender, _value);
-
-        
-        address payable to = payable(_to); 
-        s_withDrowCount += 1;
-        s_accounts[msg.sender] -= _value;
-        
-        (bool success, bytes memory data) = to.call{value: _value}("");
-        if (!success) revert Transaction_Fails(data);
-        
-        
-        emit Account_WithdrowOk(msg.sender, _value);
-    }	
 
     /**
 		*@notice function - get wallet balance
 		*@dev must revert on fail
+        *@return balance current account balance
 	*/
     function getBalance() external view returns (uint256 balance) {
         return s_accounts[msg.sender];
@@ -164,17 +148,57 @@ contract Donations {
     /**
 		*@notice function - get max bank cap
 		*@dev must revert on fail
+        *@return bankCap 
 	*/
-    function bankCap() external view returns (uint256 balance) {
+    function getBankCap() external view returns (uint256 bankCap) {
         return i_bankCap;
     }
 
     /**
 		*@notice function - get withdrowLimit
 		*@dev must revert on fail
+        *@return withdrowLimit withdrow limit
 	*/
-    function getwithdrowLimit() external view returns (uint256 balance) {
+    function getwithdrowLimit() external view returns (uint256 withdrowLimit) {
         return i_withdrowLimit;
     }
+
+    /**
+		*@notice function - pay to address
+        *@param _to - address to pay
+		*@param _value - withdrow value
+		*@dev must revert on fail
+	*/
+    function pay(address _to, uint256 _value) internal {
+        
+        uint256 ammount = msg.value;
+        uint256 currentBalance = address(this).balance;
+
+        if (currentBalance > i_bankCap) revert Transaction_GlobalLimit(_to, _value);
+        if (ammount <= 0) revert Transaction_InvalidAmmount(_to, _value);
+        
+        s_accounts[_to] += _value;
+        s_depositCount += 1;
+        emit Account_DepositOk(_to, ammount);
+    }
+
+    /**
+		*@notice function - transfer value to wallet
+		*@param _to - address to transfer
+		*@param _value - value to transfer
+		*@dev must revert on fail
+	*/
+    function transferValue(address _to, uint256 _value) internal {
+        
+        address payable to = payable(_to); 
+        s_withDrowCount += 1;
+        s_accounts[msg.sender] -= _value;
+        
+        (bool success,) = to.call{value: _value}("");
+        if (!success) revert Transaction_Fails();
+        
+        
+        emit Account_WithdrowOk(msg.sender, _value);
+    }	
 
 }
