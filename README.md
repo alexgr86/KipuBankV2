@@ -56,7 +56,6 @@ Maximum amount allowed per withdrawal.
 1. Select the network to deploy
 
 ![eth_img](images/injected_provider.png)
-![eth_img](images/injected_provider.png)
 
 2. Verify that the selected network is correct
 
