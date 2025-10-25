@@ -8,8 +8,12 @@
 
 ## Contract Information
 ### Contract address
-`0x6bc69624f55b3cef49b069e809ec8576991573ab`
-[Kipu-Bank V2 - smart contract](https://sepolia.etherscan.io/address/0x6bc69624f55b3cef49b069e809ec8576991573ab#code)
+`0x815427e27cb2532c16f3302f18dfbd7339806258`
+[Kipu-Bank V2 - smart contract](https://sepolia.etherscan.io/address/0x815427e27cb2532c16f3302f18dfbd7339806258)
+
+- Mock ARSS Token 0xbc6181db678886bcb01a48948b1aa08c2057b50d 
+- Mock Oracle 0xf7d30f5daf12405dff3a4e56c6170ebe1effddfe
+- KipuBank V2 0x815427e27cb2532c16f3302f18dfbd7339806258
 
 
 ## Improvemets
