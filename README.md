@@ -2,16 +2,25 @@
 
 ![eth_img](images/Ethereum_logo_translucent.png)
 
+## References
+- https://wizard.openzeppelin.com/
+- https://github.com/DigiCris/EthKipuPM.git
+
 ## Contract Information
 ### Contract address
 `0x6bc69624f55b3cef49b069e809ec8576991573ab`
-[Kipu-Bank - smart contract](https://sepolia.etherscan.io/address/0x6bc69624f55b3cef49b069e809ec8576991573ab#code)
+[Kipu-Bank V2 - smart contract](https://sepolia.etherscan.io/address/0x6bc69624f55b3cef49b069e809ec8576991573ab#code)
 
 
-
+## Improvemets
+- Suggested corrections were made.
+- Multitoken support was added to a custom token, stable ARS.
+- Oracle query was added (mock with stable ARS).
+- Administrative functions such as pause and unpause were added.
 
 ## Description
 This is a smart contract that functions as a bank. Any user can deposit and withdraw ETH according to the rules established in the contract.
+
 While it is intended for educational purposes, it serves as an approximation of a bank implementation using smart contracts.
 
 ## Rules
@@ -57,3 +66,5 @@ Maximum amount allowed per withdrawal.
 ![eth_img](images/firma_deploy.png)
 
 3. Obtain contract address
+
+
