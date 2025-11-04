@@ -110,6 +110,16 @@ contract KipuBankV2 is Pausable, Ownable{
         _;
     }
 
+    /**
+        /// @notice Constructor to initialize the contract with initial parameters.
+        /// @dev This constructor sets the initial owner, bank cap, withdrawal limit, oracle, and the ARSS token 
+        ///      to be used for operations. Inherits from the `Ownable` contract.
+        /// @param initialOwner The address of the initial owner of the contract. This value is passed to the `Ownable` constructor.
+        /// @param _bankCap The maximum bank cap, which represents the total amount of funds allowed in the contract.
+        /// @param _withdrowLimit The withdrawal limit, which defines the maximum amount that can be withdrawn in a single transaction.
+        /// @param _oracle The address of the oracle contract that will provide external data such as prices or other relevant information.
+        /// @param _arss The ERC20 contract of the ARSS token that will be used for transactions within the contract.
+    **/
     constructor(address initialOwner, uint256 _bankCap, uint256 _withdrowLimit, IOracle _oracle, IERC20 _arss) Ownable(initialOwner){
 		i_bankCap = _bankCap;
         i_withdrowLimit = _withdrowLimit;
@@ -151,7 +161,12 @@ contract KipuBankV2 is Pausable, Ownable{
 	/**
 		*@notice function - withdrow value to wallet
 		*@param _value - withdrow value
-		*@dev must revert on fail
+		*@dev 
+        * must revert on fail
+        * This function:
+        * - Uses the `reentrancyGuard` modifier to prevent reentrancy attacks.
+        * - Uses the `withdrowLimit` modifier to ensure that the requested withdrawal does not exceed the allowed limit.
+        * - Uses the `onlyBalanceOk` modifier to verify that the contract has sufficient balance to process the withdrawal.
 	*/
     function withdrawEth( uint256 _value) external payable reentrancyGuard withdrowLimit onlyBalanceOk{
         _transferEth(msg.sender,_value);
@@ -171,6 +186,11 @@ contract KipuBankV2 is Pausable, Ownable{
 		*@notice function - withdrow Arss to wallet
 		*@param _value - withdrow Arss value
 		*@dev must revert on fail
+        * must revert on fail
+        * This function:
+        * - Uses the `reentrancyGuard` modifier to prevent reentrancy attacks.
+        * - Uses the `withdrowLimit` modifier to ensure that the requested withdrawal does not exceed the allowed limit.
+        * - Uses the `onlyBalanceOk` modifier to verify that the contract has sufficient balance to process the withdrawal.
 	*/
     function withdrawArss( uint256 _value) external payable reentrancyGuard withdrowLimit onlyBalanceOk{
         _transferArss(msg.sender,_value);
@@ -207,7 +227,7 @@ contract KipuBankV2 is Pausable, Ownable{
         
         s_accounts[_to].eth += _value;
         s_accounts[_to].total += _value;
-        s_contractBalance += _value;
+        s_contractBalance = contractBalance;
         s_depositCount += 1;
         emit Account_DepositOk(_to, _value);
     }
@@ -222,9 +242,12 @@ contract KipuBankV2 is Pausable, Ownable{
         
         address payable to = payable(_to); 
         s_withDrowCount += 1;
-        s_accounts[msg.sender].eth -= _value;
-        s_accounts[msg.sender].total -= _value;
-        s_contractBalance -= _value;
+
+        unchecked {
+            s_accounts[msg.sender].eth -= _value;
+            s_accounts[msg.sender].total -= _value;
+            s_contractBalance -= _value;
+        }
         
         (bool success,) = to.call{value: _value}("");
         if (!success) revert Transaction_Fails();
@@ -241,13 +264,13 @@ contract KipuBankV2 is Pausable, Ownable{
 	*/
     function _payArss(address _to, uint256 _value) internal { 
         uint256 arss_inEth = ((_value)*uint256(_getARSSPrice()));
-        uint256 contractBalance = s_contractBalance + _value;   //Convertir a eth el value
+        uint256 contractBalance = s_contractBalance + arss_inEth;
         if (contractBalance > i_bankCap) revert Transaction_GlobalLimit(_to, _value);
 
         i_ARSS.transferFrom(msg.sender, address(this), _value);
         s_accounts[_to].arss += _value;
-        s_accounts[_to].total += arss_inEth;    //Convertir a eth
-        s_contractBalance += arss_inEth;        //Convertir a eth
+        s_accounts[_to].total += arss_inEth;
+        s_contractBalance = contractBalance;
         s_depositCount += 1;
 
         emit Account_DepositOk(_to, _value);
@@ -262,19 +285,25 @@ contract KipuBankV2 is Pausable, Ownable{
     function _transferArss(address _to, uint256 _value) internal {
         uint256 arss_inEth = ((_value)*uint256(_getARSSPrice()));
         i_ARSS.transferFrom(address(this), msg.sender, _value);
-        s_accounts[_to].arss -= _value;
-        s_accounts[_to].total -= arss_inEth;    //Convertir a eth
-        s_contractBalance -= arss_inEth;        //Convertir a eth
-        s_depositCount -= 1;
+        
+        unchecked {
+            s_accounts[_to].arss -= _value;
+            s_accounts[_to].total -= arss_inEth;
+            s_contractBalance -= arss_inEth;
+            s_depositCount -= 1;
+        }
         
         emit Account_WithdrowOk(msg.sender, _value);
     }	
 
+    /**
+		*@notice function - get Arss Price
+		*@return _latestAnswer 
+	*/
     function _getARSSPrice() private view returns(int256 _latestAnswer) {
         int256 arss_9dec = i_Oracle.latestAnswer();
         
         return _latestAnswer = arss_9dec * 10**9;
-
     }
 
 }
